@@ -304,4 +304,12 @@ intersphinx_mapping = {
 }
 
 # autodoc options
-autoclass_content = "both"
+#autoclass_content = "both"
+
+def skip(app, what, name, obj, skip, options):
+    if name == "__init__":
+        return False
+    return skip
+
+def setup(app):
+    app.connect("autodoc-skip-member", skip)
