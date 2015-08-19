@@ -12,5 +12,6 @@ setup(name='nros_core',
       url='http://www.pobot.org',
       download_url='https://github.com/Pobot/PyBot',
       packages=find_packages("src"),
-      package_dir={'': 'src'}
+      package_dir={'': 'src'},
+      include_package_date=True
       )
