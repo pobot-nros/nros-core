@@ -3,10 +3,10 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to nROS ``nros_core`` package documentation!
+Welcome to nROS ``nros.core`` package documentation!
 ====================================================
 
-.. automodule:: nros_core
+.. automodule:: nros.core
 
 Modules
 -------
@@ -14,7 +14,8 @@ Modules
 .. toctree::
    :maxdepth: 2
 
-   core
+   node
+   commons
 
 
 Indices and tables
