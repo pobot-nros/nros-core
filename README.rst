@@ -1,11 +1,11 @@
 WTF ?
 =====
 
-``nROS`` is a simplified ROS (see http://www.ros.org/), initialy
-targetting Python based developments.
+``nROS`` is a simplified ROS (see http://www.ros.org/), initially
+targeting Python based developments.
 
-ROS is a tremendeous achievment and there is nothing to say against
-this, but... it is a bit too heavy and tough to learn for simple
+ROS is a tremendous achievement and there is nothing to say against
+this of course, but... it is a bit too heavy and tough to learn for simple
 projects.
 
 One of the points I found boring is the lack (to my knowledge) of a
@@ -24,10 +24,10 @@ complicated for people interested only in developing things in Python
 for instance. It is possible to circumvent it by copying the relevant parts
 of the dev trees, but this is more a hack than a proven method.
 
-In addition, because of all the job done under the cover, ROS shows a bit
+In addition, because a lot of job is done under the cover, ROS shows a bit
 sluggish on constraint targets, even for quite powerful ones such as
-Rasppberry or BeagleBoneBlack. Even on comfortable laptops, a noticeable
-delay can be observed between the moment an event is published by a node
+Raspberry or BeagleBoneBlack. Even on comfortable laptops, a noticeable
+delay can be sometimes observed between the moment an event is published by a node
 and the moment a subscriber displays it.
 
 The intent of ``nROS`` is to take inspiration from the ROS model, and
@@ -38,7 +38,7 @@ no need to worry about.
 
 Interoperability with non-Linux worlds is provided by the mean of
 a Web services based gateway, added by an optional package to avoid
-heaviering configurations not needing such a support.
+weighing down configurations not needing such a support.
 
 Content
 =======
