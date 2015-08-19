@@ -19,13 +19,17 @@ import signal
 import logging.config
 import sys
 import os
+import json
 
 import dbus.mainloop.glib
 import dbus.service
 import gobject
 
-from pybot_core import cli, log
-from pybot_dynamixel import DmxlError
+from nros.core import cli
+from nros.core import log
+
+
+DEFAULT_SERVICE_OBJECT_PATH = '/'
 
 
 class NROSNode(object):
@@ -46,11 +50,36 @@ class NROSNode(object):
     - :py:meth:`configure`
     - :py:meth:`prepare_node`
     - :py:meth:`setup_dbus_environment`
+    - DBus main loop
     - :py:meth:`shutdown`
+
+    Sub-class implementing real nodes will most of the time override the following methods :
+
+    ``configure``
+
+        It is the place to create instances of classes in charge of doing the real job, based
+        on what is specified in the configuration data.
+
+    ``prepare_node``
+
+        At this point, everybody is on the stage, at the right position to start the play. This
+        is the place to put everything in its initial state.
+
+    ``setup_dbus_environment``
+
+        Everybody is now up and running, and it is time to bind them to D-Bus by creating and
+        preparing the required service objects.
+
+    ``shutdown``
+
+        The place for stopping all the worker processes which have been involved until now and doing
+        the final housekeeping. At this point the D-Bus mechanisms are no more active.
     """
     _logger = None
     _node = None
     _loop = None
+    _verbose = False
+    _debug = False
 
     @classmethod
     def add_arguments_to_parser(cls, parser):
@@ -58,12 +87,17 @@ class NROSNode(object):
 
         Override this method to add arguments to the parser already initialized with common
         ones, using :meth:`ArgumentParser.add_argument` standard method.
-        
+
+        The default method is empty, so that you don't need to call `super` in your version.
+        But it is wiser to do it anyway, in case some process would be added here in the future.
+
         Arguments included by default to the parser are:
-         
+
         - ``-n``, ``--name`` : the name of the node **(required)**
         - ``-C``, ``--config`` : the node configuration file path **(required)**
         - ``--logger-config`` : the logging configuration file path
+        - ``--verbose`` : verbose logs
+        - ``--debug`` : debug mode activation
 
         :param ArgumentParser parser: the argument parser
         """
@@ -84,11 +118,42 @@ class NROSNode(object):
         you don't need to invoke ``super`` in the overridden version.
         """
 
-    def configure(self, cfg):
+    def configure(self, cfg_file):
         """ Override this method to process the configuration of the node.
 
-        :param dict cfg: the node configuration as a dictionary
+        Since the base method is empty, there is no need to invoke ``super``.
+
+        :param file cfg_file: a read-only opened file located at the path specified by
+            then command line `-C/--config` argument if any. It will be None if the option is not used.
         """
+
+    def _get_cfg_dict(self, cfg):
+        """ Helper method for sub-classes for pre-processing the configuration data passed to
+        the node during its initialization step.
+
+        If the parameter is already a dictionary, it is supposed to be the expected configuration data,
+        and it is returned unchanged.
+
+        :param cfg: a dictionary, or a file or the path of the file containing the configuration data in JSON format
+        :return: the configuration data as a dictionary (empty if no configuration data provided).
+        :rtype: dict
+        :raises: ValuerError if JSON data are not valid
+        :raises: TypeError if the parameter is of any of the accepted types
+        """
+        if not cfg:
+            return {}
+
+        if isinstance(cfg, dict):
+            return cfg
+
+        elif isinstance(cfg, file):
+            return json.load(cfg)
+
+        elif isinstance(cfg, basestring):
+            return json.load(file(cfg, 'rt'))
+
+        else:
+            raise TypeError(self.logged_message('unsupported configuration data type'))
 
     # def is_ready(self):
     #     """ Invoked at the beginning of :meth:`run()` process.
@@ -102,14 +167,20 @@ class NROSNode(object):
         """ Prepare the node to be run.
 
         Last pre-flight checks should take place here.
+
+        Since the default implementation of ``prepare_node`` does nothing,
+        you don't need to invoke ``super`` in the overridden version.
         """
 
-    def setup_dbus_environment(self, connection):
+    def setup_dbus_environment(self, bus_name):
         """ Called as the first step of the run phase, just before entering the run loop.
 
         The execution context has been validated, and the node is connected to the D-Bus hub.
 
-        :param connection: the node connection to the D-Bus hub
+        Since the default implementation of ``setup_dbus_environment`` does nothing,
+        you don't need to invoke ``super`` in the overridden version.
+
+        :param :py:class:`dbus.service.BusName` bus_name: the well known name used for this node
         """
 
     def shutdown(self):
@@ -117,15 +188,24 @@ class NROSNode(object):
 
         Override to perform cleanup to be done while the loop is still alive, such as
         housekeeping of service objects.
+
+        Since the default implementation of ``shutdown`` does nothing,
+        you don't need to invoke ``super`` in the overridden version.
         """
 
     def __init__(self, name):
         """ To extend the initialization process, override the :py:meth:`init_node()` method
         instead of :py:meth:`__init__`.
 
-        :param name: the name of the node
+        Nodes can be named to easily distinguish them. If not, a default name will be generated,
+        built with the concrete class name and the process id.
+
+        :param str name: the name of the node. (optional)
         """
-        self._logger.info('initialiazing node %s' % name)
+        if not name:
+            name = 'nros.%s-%d' % (self.__class__.__name__, os.getpid())
+
+        self._logger.info("initializing node '%s'" % name)
         self.name = name
         self.init_node()
 
@@ -151,6 +231,7 @@ class NROSNode(object):
         self._logger.error(msg)
         return msg
 
+    BANNER_WIDTH = 60
 
     @classmethod
     def main(cls):
@@ -164,21 +245,24 @@ class NROSNode(object):
         args = cls._process_command_line()
 
         cls._logger = cls._setup_logging(args.log_cfg)
-        cls._logger.info('--------------------- STARTING ---------------------')
+        cls._logger.info(' NODE STARTED '.center(cls.BANNER_WIDTH, '-'))
         cls._logger.info('pid=%d', os.getpid())
 
         cls._init_dbus()
 
-        cls._node = node = cls(name=args.name)
+        cls._node = node = cls(name=getattr(args, 'name', None))
+        node._verbose = args.verbose
+        node._debug = args.debug
         try:
             node.configure(args.config)
-        except DmxlError as e:
+        except Exception as e:
             cls.die(e)
 
         node.prepare_node()
 
-        connection = dbus.service.BusName('org.pobot.nros.' + node.name, bus=dbus.SessionBus())
-        node.setup_dbus_environment(connection)
+        cls._logger.info('connecting to D-Bus as %s', node.name)
+        bus_name = dbus.service.BusName(node.name, bus=dbus.SessionBus())
+        node.setup_dbus_environment(bus_name)
 
         signal.signal(signal.SIGTERM, cls._sigterm_handler)
 
@@ -188,17 +272,16 @@ class NROSNode(object):
             cls._logger.info('loop exited')
 
         except KeyboardInterrupt:
-            cls._logger.info("!!! keyboard interrupt or SIGINT caught !!!")
+            cls._logger.info(" keyboard interrupt or SIGINT caught ".center(cls.BANNER_WIDTH, '!'))
             node.terminate()
 
-        cls._logger.info('-------------------- TERMINATED --------------------')
+        cls._logger.info(' TERMINATED '.center(cls.BANNER_WIDTH, '-'))
 
     @classmethod
     def die(cls, msg, exit_code=1):
         cls._logger.error(msg)
-        cls._logger.error('--------------------- ABORTED ----------------------')
+        cls._logger.error(' ABORTED '.center(cls.BANNER_WIDTH, '-'))
         sys.exit(exit_code)
-
 
     @classmethod
     def _sigterm_handler(cls, signum, frame):
@@ -211,21 +294,19 @@ class NROSNode(object):
         parser.add_argument(
             '-n', '--name',
             dest='name',
-            required=True,
-            help='node name'
+            help='node name (default: nros.%s-<pid>)' % cls.__name__
         )
         parser.add_argument(
             '-C', '--config',
             dest='config',
-            required=True,
             type=file,
-            help='configuration file path'
+            help='configuration file path (default: %(default)s)'
         )
         parser.add_argument(
             '--logger-config',
             dest='log_cfg',
             type=file,
-            help='logging customisation'
+            help='logging customisation (default: %(default)s)'
         )
 
         cls.add_arguments_to_parser(parser)
@@ -242,7 +323,7 @@ class NROSNode(object):
     @classmethod
     def _setup_logging(cls, cfg_path):
         log_name = os.path.splitext(os.path.basename(sys.argv[0]))[0] + '.log'
-        log_dir = '/var/log/nros' if os.getuid() == 0 else os.path.expanduser('~/.nros')
+        log_dir = '/var/log/nros' if os.getuid() == 0 else os.path.expanduser('~/.nros/log')
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
         log_path = os.path.join(log_dir, log_name)
