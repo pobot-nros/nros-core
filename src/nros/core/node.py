@@ -13,13 +13,12 @@ Nodes use D-Bus to communicate, by publishing messages, subscribing to messages 
 calling methods from other nodes.
 """
 
-__author__ = 'Eric Pascual'
-
 import signal
 import logging.config
 import sys
 import os
 import json
+import subprocess
 
 import dbus.mainloop.glib
 import dbus.service
@@ -27,6 +26,8 @@ import gobject
 
 from nros.core import cli
 from nros.core import log
+
+__author__ = 'Eric Pascual'
 
 
 DEFAULT_SERVICE_OBJECT_PATH = '/'
@@ -39,7 +40,7 @@ class NROSNode(object):
     node script 'main' part, using something like this :
 
     >>> if __name__ == '__main__':
-    >>>     MyNode.main()
+    >>>     MyNode.main(sys.args)
 
     The various stages of the execution can be defined or customized by overriding the
     following methods:
@@ -234,33 +235,42 @@ class NROSNode(object):
     BANNER_WIDTH = 60
 
     @classmethod
-    def main(cls):
+    def main(cls, args):
         """ The main line of the node.
 
         Invoke it in the main part of the node script, like this :
 
         >>> if __name__ == '__main__':
-        >>>     MyNode.main()
+        >>>     MyNode.main(sys.args)
         """
-        args = cls._process_command_line()
+        args = cls._process_command_line(args)
 
         cls._logger = cls._setup_logging(args.log_cfg)
         cls._logger.info(' NODE STARTED '.center(cls.BANNER_WIDTH, '-'))
         cls._logger.info('pid=%d', os.getpid())
 
         cls._init_dbus()
+        cls._logger.info('D-Bus init ok')
 
         cls._node = node = cls(name=getattr(args, 'name', None))
         node._verbose = args.verbose
+        if args.debug:
+            cls._logger.info('verbose mode activated')
+
         node._debug = args.debug
+        if args.debug:
+            cls._logger.warn('debug mode activated')
+
         try:
+            cls._logger.info('processing configuration... (cfg=%s)', args.config.name)
             node.configure(args.config)
         except Exception as e:
             cls.die(e)
 
+        cls._logger.info('preparing node...')
         node.prepare_node()
 
-        cls._logger.info('connecting to D-Bus as %s', node.name)
+        cls._logger.info('registering to nROS bus as %s', node.name)
         bus_name = dbus.service.BusName(node.name, bus=dbus.SessionBus())
         node.setup_dbus_environment(bus_name)
 
@@ -272,24 +282,28 @@ class NROSNode(object):
             cls._logger.info('loop exited')
 
         except KeyboardInterrupt:
-            cls._logger.info(" keyboard interrupt or SIGINT caught ".center(cls.BANNER_WIDTH, '!'))
+            cls._logger.info(" termination signal caught ".center(cls.BANNER_WIDTH, '!'))
             node.terminate()
 
         cls._logger.info(' TERMINATED '.center(cls.BANNER_WIDTH, '-'))
 
     @classmethod
-    def die(cls, msg, exit_code=1):
-        cls._logger.error(msg)
-        cls._logger.error(' ABORTED '.center(cls.BANNER_WIDTH, '-'))
-        sys.exit(exit_code)
+    def die(cls, msg):
+        if cls._logger:
+            cls._logger.fatal(msg)
+            cls._logger.error(' ABORTED '.center(cls.BANNER_WIDTH, '-'))
+        else:
+            sys.stderr.write("[FATAL ERROR] %s\n"% msg)
+            sys.stderr.flush()
+        sys.exit(1)
 
     @classmethod
     def _sigterm_handler(cls, signum, frame):
         cls._logger.info('!!! SIGTERM caught !!!')
-        cls._node.terminate()
+        cls._node.terminate_ui_loop()
 
     @classmethod
-    def _process_command_line(cls):
+    def _process_command_line(cls, args=None):
         parser = cli.get_argument_parser()
         parser.add_argument(
             '-n', '--name',
@@ -311,10 +325,23 @@ class NROSNode(object):
 
         cls.add_arguments_to_parser(parser)
 
-        return parser.parse_args()
+        try:
+            return parser.parse_args(args=args.split() if isinstance(args, basestring) else args)
+        except Exception as e:
+            cls.die("invalid arguments : %s" % e)
 
     @classmethod
     def _init_dbus(cls):
+        # starts a dedicated session bus in none is currently active
+        # and retrieve its settings
+        session_bus_config, was_running = start_session_bus(cls._logger)
+        cls._logger.info('nROS bus configuration :')
+        for k, v in session_bus_config.iteritems():
+            cls._logger.info("- %-25s : %s", k, v)
+
+        os.environ.update(session_bus_config)
+
+        # start the D-Bus main loop now
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         gobject.threads_init()
         dbus.mainloop.glib.threads_init()
@@ -322,12 +349,27 @@ class NROSNode(object):
 
     @classmethod
     def _setup_logging(cls, cfg_path):
+        # by default, the log is name after the main script
         log_name = os.path.splitext(os.path.basename(sys.argv[0]))[0] + '.log'
-        log_dir = '/var/log/nros' if os.getuid() == 0 else os.path.expanduser('~/.nros/log')
+
+        # log files default location, based on the current user
+        log_dir = '/var/log/nros' if os.getuid() == 0 else '~/.nros/log'
+
+        if cfg_path:
+            import json
+            custom_cfg = json.load(cfg_path)
+
+            log_dir = custom_cfg.get('log_dir', log_dir)
+            log_name = custom_cfg.get('log_name', log_dir)
+        else:
+            custom_cfg = None
+
+        log_dir = os.path.abspath(os.path.expanduser(log_dir))
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
         log_path = os.path.join(log_dir, log_name)
 
+        # customized the variable parts of the configuration
         logging_cfg = {
             'handlers': {
                 'file': {
@@ -335,12 +377,50 @@ class NROSNode(object):
                 }
             }
         }
-        if cfg_path:
-            import json
-            cfg = json.load(cfg_path)
-            log.deep_update(logging_cfg, cfg)
 
+        # if a custom configuration file has been provided, override current settings with its content
+        if custom_cfg:
+            log.deep_update(logging_cfg, custom_cfg)
+
+        # we can configure the logging now
         logging.config.dictConfig(log.get_logging_configuration(logging_cfg))
         logger = logging.getLogger(cls.__name__)
 
         return logger
+
+
+DBUS_ENV_FILE = '/tmp/nros-session-bus'
+
+
+def start_session_bus(logger=None):
+    is_running = session_bus_is_running()
+    if not is_running:
+        if logger:
+            logger.info('starting nROS bus...')
+        error = subprocess.call("dbus-launch --sh-syntax > " + DBUS_ENV_FILE, shell=True)
+        if error:
+            raise Exception("dbus-launch failed with rc=%d" % error)
+
+    return get_bus_config(), is_running
+
+
+def stop_session_bus():
+    if session_bus_is_running():
+        d = get_bus_config()
+        pid = d['DBUS_SESSION_BUS_PID']
+        os.kill(int(pid), signal.SIGTERM)
+        os.remove(DBUS_ENV_FILE)
+
+
+def session_bus_is_running():
+    return os.path.exists(DBUS_ENV_FILE)
+
+
+def get_bus_config():
+    d = {}
+    for line in [line for line in file(DBUS_ENV_FILE) if '=' in line]:
+        var, value = line.split('=', 1)
+        d[var] = value.strip().strip(';').strip("'")
+    return d
+
+

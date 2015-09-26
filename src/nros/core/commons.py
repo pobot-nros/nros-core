@@ -65,7 +65,7 @@ def get_remote_bus(host, port):
 
 
 def get_node_proxy(bus, node_name, object_path='/'):
-    """ Returns a proxy object inside a given node.
+    """ Returns a proxy for an object inside a given node.
 
     Refer to D-Bus :py:meth:`det_object` method documentation for details.
 
