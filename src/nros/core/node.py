@@ -19,6 +19,7 @@ import sys
 import os
 import json
 import subprocess
+from datetime import datetime
 
 import dbus.mainloop.glib
 import dbus.service
@@ -235,6 +236,10 @@ class NROSNode(object):
     BANNER_WIDTH = 60
 
     @classmethod
+    def _make_banner(cls, msg):
+        return (' %s on %s ' % (msg, datetime.now())).center(cls.BANNER_WIDTH, '-')
+
+    @classmethod
     def main(cls, args):
         """ The main line of the node.
 
@@ -246,8 +251,13 @@ class NROSNode(object):
         args = cls._process_command_line(args)
 
         cls._logger = cls._setup_logging(args.log_cfg)
-        cls._logger.info(' NODE STARTED '.center(cls.BANNER_WIDTH, '-'))
-        cls._logger.info('pid=%d', os.getpid())
+        cls._logger.info(cls._make_banner('NODE STARTED'))
+        cls._logger.info('Invocation arguments:')
+        for k, v in vars(args).iteritems():
+            cls._logger.info('- %s : %s', k, v)
+        cls._logger.info('Execution context:')
+        cls._logger.info('- uid : %d', os.getuid())
+        cls._logger.info('- pid : %d', os.getpid())
 
         cls._init_dbus()
         cls._logger.info('D-Bus init ok')
@@ -285,13 +295,13 @@ class NROSNode(object):
             cls._logger.info(" termination signal caught ".center(cls.BANNER_WIDTH, '!'))
             node.terminate()
 
-        cls._logger.info(' TERMINATED '.center(cls.BANNER_WIDTH, '-'))
+        cls._logger.info(cls._make_banner('NODE STOPPED'))
 
     @classmethod
     def die(cls, msg):
         if cls._logger:
             cls._logger.fatal(msg)
-            cls._logger.error(' ABORTED '.center(cls.BANNER_WIDTH, '-'))
+            cls._logger.error(cls._make_banner('NODE ABORTED'))
         else:
             sys.stderr.write("[FATAL ERROR] %s\n"% msg)
             sys.stderr.flush()
@@ -349,7 +359,7 @@ class NROSNode(object):
 
     @classmethod
     def _setup_logging(cls, cfg_path):
-        # by default, the log is name after the main script
+        # by default, the log is named after the main script
         log_name = os.path.splitext(os.path.basename(sys.argv[0]))[0] + '.log'
 
         # log files default location, based on the current user
