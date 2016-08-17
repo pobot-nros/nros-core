@@ -33,7 +33,7 @@ _default_configuration = {
             'formatter': 'detailed',
             'level': 'DEBUG',
             'filename': '',
-            'maxBytes': 1024*1024,
+            'maxBytes': 1024*100,
             'backupCount': 3
         }
     },
