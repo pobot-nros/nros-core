@@ -1,11 +1,11 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from setuptools import setup, find_packages
 
 setup(
     name='nros-core',
-    version='1.0.2',
+    setup_requires=['setuptools_scm'],
+    use_scm_version=True,
     description='Core part of nROS framework',
     license='LGPL',
     author='Eric Pascual',
