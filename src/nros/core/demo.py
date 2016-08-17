@@ -5,7 +5,6 @@
 
 It uses the :py:mod:`curses` package.
 """
-__author__ = 'Eric Pascual'
 
 import curses
 import argparse
@@ -16,6 +15,8 @@ import os
 import tempfile
 
 from nros.core.commons import *
+
+__author__ = 'Eric Pascual'
 
 
 class Demo(object):
@@ -376,7 +377,7 @@ if __name__ == '__main__':
         """
         USAGE = """
             Use key "A" to type a "A"
-            User key "Z" to type a "Z"
+            Use key "Z" to type a "Z"
         """
 
         def setup(self, bus, wnd_client):
