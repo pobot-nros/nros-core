@@ -2,7 +2,7 @@
 
 import os
 
-from nros.core.node import start_session_bus, session_bus_is_running, stop_session_bus, get_bus_config
+from nros.core.node import start_session_bus, session_bus_is_running, stop_session_bus, get_bus_config, bus_monitor
 
 __author__ = 'Eric Pascual'
 
@@ -14,7 +14,6 @@ _CONFIG_DIR = os.path.join('/etc', PKG_NAME.replace('.', '/'))
 def nros_bus_start():
     if session_bus_is_running():
         print('nROS bus already started.')
-        config = get_bus_config()
     else:
         print('Starting nROS bus...')
         config, _ = start_session_bus()
@@ -42,6 +41,17 @@ def nros_bus_config():
         config = get_bus_config()
         for k, v in config.iteritems():
             print("- %-25s : %s" % (k, v))
+
+    else:
+        print('nROS bus not started.')
+
+
+def nros_bus_monitor():
+    if session_bus_is_running():
+        try:
+            bus_monitor()
+        except Exception as e:
+            print(e.message)
 
     else:
         print('nROS bus not started.')

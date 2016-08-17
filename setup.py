@@ -21,6 +21,7 @@ setup(
             'nros-bus-stop = nros.core.entry_points:nros_bus_stop',
             'nros-bus-status = nros.core.entry_points:nros_bus_status',
             'nros-bus-config = nros.core.entry_points:nros_bus_config',
+            'nros-bus-monitor = nros.core.entry_points:nros_bus_monitor',
         ]
     }
 )

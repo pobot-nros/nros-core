@@ -445,3 +445,9 @@ def get_bus_config():
     return d
 
 
+def bus_monitor():
+    if session_bus_is_running():
+        d = get_bus_config()
+        error = subprocess.call("dbus-monitor --address %s" % d['DBUS_SESSION_BUS_ADDRESS'], shell=True)
+        if error:
+            raise Exception("dbus-monitor failed with rc=%d" % error)
