@@ -7,6 +7,7 @@ setup(
     setup_requires=['setuptools_scm'],
     use_scm_version=True,
     description='Core part of nROS framework',
+    install_requires=['python-dbus'],
     license='LGPL',
     author='Eric Pascual',
     author_email='eric@pobot.org',
