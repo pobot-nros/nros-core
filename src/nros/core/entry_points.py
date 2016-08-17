@@ -49,10 +49,10 @@ def nros_bus_config():
 def nros_bus_monitor():
     if session_bus_is_running():
         try:
-            print('-- Starting bus monitor (Ctrl-C to end)')
+            print('-- Starting bus monitor (Ctrl-C to end)\n')
             bus_monitor()
         except KeyboardInterrupt:
-            print('\r-- Monitoring ended.')
+            print('\r\n-- Monitoring ended.')
         except Exception as e:
             print(e.message)
 
