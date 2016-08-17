@@ -76,6 +76,12 @@ class NROSNode(object):
 
         The place for stopping all the worker processes which have been involved until now and doing
         the final housekeeping. At this point the D-Bus mechanisms are no more active.
+
+    Nodes define automatically their logger, which outputs simultaneously to the console and to
+    a rotating file. By default, the log file is located in `/var/log/nros/` if the node is started
+    as root user, or in `~/.nros/log/` if standard user. The name of the log file is the same as the
+    start script one. A customized configuration of logging can be provided using the ` --logger-config`
+    CLI option. See details in :py:meth:`_setup_logging` method.
     """
     _logger = None
     _node = None
@@ -370,7 +376,7 @@ class NROSNode(object):
             custom_cfg = json.load(cfg_path)
 
             log_dir = custom_cfg.get('log_dir', log_dir)
-            log_name = custom_cfg.get('log_name', log_dir)
+            log_name = custom_cfg.get('log_name', log_name)
         else:
             custom_cfg = None
 
