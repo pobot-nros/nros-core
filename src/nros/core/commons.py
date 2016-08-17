@@ -6,6 +6,9 @@
 ``import *`` can be done without risk, since exported symbols are restricted by the ``__all__`` definition.
 """
 
+from dbus.bus import BusConnection
+from dbus import Interface
+
 __author__ = 'Eric Pascual'
 
 __all__ = [
@@ -14,9 +17,6 @@ __all__ = [
     'get_node_proxy', 'get_node_interface',
     'connect_to_interface_signal'
 ]
-
-from dbus.bus import BusConnection
-from dbus import Interface
 
 
 def dbus_init():
