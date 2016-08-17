@@ -415,6 +415,11 @@ def start_session_bus(logger=None):
             logger.info('starting nROS bus...')
         error = subprocess.call("dbus-launch --sh-syntax > " + DBUS_ENV_FILE, shell=True)
         if error:
+            # ensure no env file is left around
+            try:
+                os.remove(DBUS_ENV_FILE)
+            except OSError:
+                pass
             raise Exception("dbus-launch failed with rc=%d" % error)
 
     return get_bus_config(), is_running
