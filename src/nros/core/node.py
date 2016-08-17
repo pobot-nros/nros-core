@@ -246,7 +246,7 @@ class NROSNode(object):
         Invoke it in the main part of the node script, like this :
 
         >>> if __name__ == '__main__':
-        >>>     MyNode.main(sys.args)
+        >>>     MyNode.main(sys.argv)
         """
         args = cls._process_command_line(args)
 
