@@ -52,7 +52,7 @@ def nros_bus_monitor():
             print('Starting bus monitor (Ctrl-C to end)')
             bus_monitor()
         except KeyboardInterrupt:
-            pass
+            print('\rMonitoring ended.')
         except Exception as e:
             print(e.message)
 
