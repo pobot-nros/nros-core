@@ -270,8 +270,9 @@ class NROSNode(object):
 
         cls._node = node = cls(name=getattr(args, 'name', None))
         node._verbose = args.verbose
-        if args.debug:
+        if args.verbose:
             cls._logger.info('verbose mode activated')
+            cls._logger.setLevel(logging.DEBUG)
 
         node._debug = args.debug
         if args.debug:

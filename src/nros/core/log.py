@@ -25,13 +25,13 @@ _default_configuration = {
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'brief',
-            'level': 'INFO',
+            # 'level': 'INFO',
             'stream': 'ext://sys.stdout'
         },
         'file': {
             'class': 'logging.handlers.RotatingFileHandler',
             'formatter': 'detailed',
-            'level': 'DEBUG',
+            # 'level': 'INFO',
             'filename': '',
             'maxBytes': 1024*100,
             'backupCount': 3
@@ -39,7 +39,7 @@ _default_configuration = {
     },
     'root': {
         'handlers': ['console', 'file'],
-        'level': 'DEBUG'
+        'level': 'INFO'
     }
 }
 
