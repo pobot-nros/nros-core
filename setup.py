@@ -8,7 +8,7 @@ setup(
     use_scm_version=True,
     description='Core part of nROS framework',
     install_requires=['dbus-python'],
-    extras_require = {
+    extras_require={
         'systemd': ['pybot-systemd']
     },
     license='LGPL',
