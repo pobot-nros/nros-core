@@ -26,6 +26,7 @@ import gobject
 
 from nros.core import cli
 from nros.core import log
+from nros.core.commons import start_session_bus
 
 __author__ = 'Eric Pascual'
 
