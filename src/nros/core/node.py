@@ -18,7 +18,6 @@ import logging.config
 import sys
 import os
 import json
-import subprocess
 from datetime import datetime
 
 import dbus.mainloop.glib
@@ -419,51 +418,3 @@ class NROSNode(object):
         logger = logging.getLogger(cls.__name__)
 
         return logger
-
-
-DBUS_ENV_FILE = '/tmp/nros-session-bus'
-
-
-def start_session_bus(logger=None):
-    is_running = session_bus_is_running()
-    if not is_running:
-        if logger:
-            logger.info('starting nROS bus...')
-        error = subprocess.call("dbus-launch --sh-syntax > " + DBUS_ENV_FILE, shell=True)
-        if error:
-            # ensure no env file is left around
-            try:
-                os.remove(DBUS_ENV_FILE)
-            except OSError:
-                pass
-            raise Exception("dbus-launch failed with rc=%d" % error)
-
-    return get_bus_config(), is_running
-
-
-def stop_session_bus():
-    if session_bus_is_running():
-        d = get_bus_config()
-        pid = d['DBUS_SESSION_BUS_PID']
-        os.kill(int(pid), signal.SIGTERM)
-        os.remove(DBUS_ENV_FILE)
-
-
-def session_bus_is_running():
-    return os.path.exists(DBUS_ENV_FILE)
-
-
-def get_bus_config():
-    d = {}
-    for line in [line for line in file(DBUS_ENV_FILE) if '=' in line]:
-        var, value = line.split('=', 1)
-        d[var] = value.strip().strip(';').strip("'")
-    return d
-
-
-def bus_monitor():
-    if session_bus_is_running():
-        d = get_bus_config()
-        error = subprocess.call("dbus-monitor --address %s" % d['DBUS_SESSION_BUS_ADDRESS'], shell=True)
-        if error:
-            raise Exception("dbus-monitor failed with rc=%d" % error)

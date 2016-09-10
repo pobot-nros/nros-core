@@ -2,7 +2,7 @@
 
 import os
 
-from nros.core.node import start_session_bus, session_bus_is_running, stop_session_bus, get_bus_config, bus_monitor
+from nros.core.commons import start_session_bus, session_bus_is_running, stop_session_bus, get_bus_config, bus_monitor
 
 __author__ = 'Eric Pascual'
 
