@@ -14,7 +14,7 @@ def install_service():
         if not SystemdSetupHelper(SERVICE_NAME).install_service():
             print("already installed")
     except RuntimeError as e:
-        sys.exit(e.message)
+        sys.exit("ERROR: %s" % e)
 
 
 def remove_service():
@@ -22,4 +22,4 @@ def remove_service():
         if not SystemdSetupHelper(SERVICE_NAME).remove_service():
             print("not installed")
     except RuntimeError as e:
-        sys.exit(e.message)
+        sys.exit("ERROR: %s" % e)
