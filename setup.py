@@ -26,8 +26,8 @@ setup(
             'nros-bus-config = nros.core.entry_points:nros_bus_config',
             'nros-bus-monitor = nros.core.entry_points:nros_bus_monitor',
             # optionals
-            "nros-bus-systemd-setup = nros.core.setup.systemd:install_service [systemd]",
-            "nros-bus-systemd-cleanup = nros.core.setup.systemd:remove_service [systemd]",
+            "nros-bus-systemd-install = nros.core.setup.systemd:install_service [systemd]",
+            "nros-bus-systemd-remove = nros.core.setup.systemd:remove_service [systemd]",
         ]
     },
     package_data={
