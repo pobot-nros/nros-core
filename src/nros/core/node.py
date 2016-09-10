@@ -41,7 +41,7 @@ class NROSNode(object):
     node script 'main' part, using something like this :
 
     >>> if __name__ == '__main__':
-    >>>     MyNode.main(sys.args)
+    >>>     MyNode.main()
 
     The various stages of the execution can be defined or customized by overriding the
     following methods:
@@ -246,13 +246,13 @@ class NROSNode(object):
         return (' %s on %s ' % (msg, datetime.now())).center(cls.BANNER_WIDTH, '-')
 
     @classmethod
-    def main(cls, args):
+    def main(cls, args=None):
         """ The main line of the node.
 
         Invoke it in the main part of the node script, like this :
 
         >>> if __name__ == '__main__':
-        >>>     MyNode.main(sys.argv)
+        >>>     MyNode.main()
         """
         args = cls._process_command_line(args)
 
@@ -277,18 +277,28 @@ class NROSNode(object):
         if args.debug:
             cls._logger.warn('debug mode activated')
 
-        try:
-            cls._logger.info('processing configuration... (cfg=%s)', args.config.name)
-            node.configure(args.config)
-        except Exception as e:
-            cls.die(e)
+        if args.config:
+            try:
+                cls._logger.info('processing configuration... (cfg=%s)', args.config.name)
+                node.configure(args.config)
+            except Exception as e:
+                cls.die("configuration failure", e)
+
+        else:
+            cls._logger.warn('no configuration file specified')
 
         cls._logger.info('preparing node...')
-        node.prepare_node()
+        try:
+            node.prepare_node()
+        except Exception as e:
+            cls.die("node preparation failure", e)
 
         cls._logger.info('registering to nROS bus as %s', node.name)
         bus_name = dbus.service.BusName(node.name, bus=dbus.SessionBus())
-        node.setup_dbus_environment(bus_name)
+        try:
+            node.setup_dbus_environment(bus_name)
+        except Exception as e:
+            cls.die("DBus environment setting failure", e)
 
         signal.signal(signal.SIGTERM, cls._sigterm_handler)
 
@@ -304,12 +314,18 @@ class NROSNode(object):
         cls._logger.info(cls._make_banner('NODE STOPPED'))
 
     @classmethod
-    def die(cls, msg):
+    def die(cls, msg, exception=None):
         if cls._logger:
             cls._logger.fatal(msg)
+            if exception:
+                cls._logger.exception(' : '.join([exception.__class__.__name__, exception.message]))
             cls._logger.error(cls._make_banner('NODE ABORTED'))
         else:
-            sys.stderr.write("[FATAL ERROR] %s\n"% msg)
+            sys.stderr.write("[FATAL ERROR] %s\n" % msg)
+            if exception:
+                sys.stderr.write('Cause:\n')
+                import traceback
+                sys.stderr.write(traceback.format_exc() + '\n')
             sys.stderr.flush()
         sys.exit(1)
 
