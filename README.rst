@@ -3,7 +3,7 @@ WTF ?
 
 **Disclaimer:** What is stated hereafter is the result of my understanding
 of the related topics. In no way this should be taken as a value assessment
-of the existing works, nor as an absolute truth. Tou've been warned ;)
+of the existing works, nor as an absolute truth. You've been warned ;)
 
 ``nROS`` is an attempt to provide a simplified ROS (see http://www.ros.org/),
 initially targeting Python based developments.
