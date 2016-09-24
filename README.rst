@@ -43,9 +43,10 @@ weighing down configurations not needing such a support.
 Content
 =======
 
-This package is only a placeholder to create the root namespace
-package in which all ``nROS`` sub-packages will be installed.
+nROS framework is intended to be distributed as a collection of
+packages installed under the umbrella namespace package named ``nROS``.
 
-Because of this deployment structure, it must be installed before
-all the other ones, and all sub-packages must declare a dependency 
-on it to ensure this.
+This package contains the core parts of the framework and must be installed
+first, since it creates the root package of the namespace.
+
+All sub-packages must declare a dependency on it to ensure this.
