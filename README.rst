@@ -64,3 +64,10 @@ This package contains the core parts of the framework and must be installed
 first, since it creates the root package of the namespace.
 
 All sub-packages must declare a dependency on it to ensure this.
+
+Documentation
+=============
+
+The Sphinx based documentation is provided in the ``doc`` folder. Use the command
+``make html`` (for instance) for generating it. Have a look to the Makefile in this
+folder to know all the other targets, and the Sphinx online documentation if not enough.
